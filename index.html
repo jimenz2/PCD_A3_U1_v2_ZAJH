@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grafo de la Red de Comunicación Territorial</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #111827; /* Dark blue-gray background */
+            color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            padding: 15px;
+            background-color: #1f2937;
+            border-bottom: 1px solid #374151;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.8em;
+            color: #00d4aa;
+        }
+
+        .student-info {
+            font-size: 0.9em;
+            margin-top: 8px;
+            opacity: 0.8;
+        }
+
+        .main-container {
+            display: flex;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        #graph-container {
+            flex-grow: 3;
+            position: relative;
+            border-right: 1px solid #374151;
+        }
+
+        #info-panel {
+            flex-grow: 1;
+            background-color: #1f2937;
+            padding: 25px;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+            max-width: 380px;
+        }
+
+        #info-panel h3 {
+            margin: 0 0 15px 0;
+            color: #00d4aa;
+            border-bottom: 2px solid #00d4aa;
+            padding-bottom: 10px;
+        }
+
+        #info-panel ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        #info-panel li {
+            margin-bottom: 12px;
+            line-height: 1.5;
+            background-color: #374151;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 3px solid #00a8cc;
+        }
+        
+        #info-panel .placeholder {
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+        svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .links line {
+            stroke: #4b5563;
+            stroke-opacity: 0.6;
+        }
+
+        .nodes circle {
+            stroke: #f0f0f0;
+            stroke-width: 1.5px;
+            cursor: pointer;
+        }
+        
+        .nodes circle:hover {
+            stroke-width: 3px;
+        }
+
+        .nodes text {
+            font-size: 12px;
+            fill: #f0f0f0;
+            pointer-events: none;
+            text-anchor: middle;
+            dominant-baseline: central;
+        }
+        
+        .footer-quote {
+            text-align: center;
+            padding: 10px;
+            font-size: 0.8em;
+            background-color: #1f2937;
+            border-top: 1px solid #374151;
+            font-style: italic;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Grafo de la Red de Comunicación Territorial</h1>
+        <div class="student-info">
+            <strong>Estudiante:</strong> Zayra Jiménez Hinojos | 
+            <strong>División:</strong> Ciencias Sociales y Administrativas | 
+            <strong>Asignatura:</strong> Comunicación para el desarrollo
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div id="graph-container"></div>
+        <div id="info-panel">
+            <p class="placeholder">Haga clic en un nodo para ver su información detallada.</p>
+        </div>
+    </div>
+    
+    <div class="footer-quote">
+        <p>Es importante pensar con el corazón y sentir con la cabeza; that is, to think with the heart and feel with the head.</p>
+    </div>
+
+    <script>
+        // --- 1. Data Definition ---
+        // This section defines the structure of the network: nodes and the links between them.
+        const graphData = {
+            nodes: [
+                // Central Node (Group 0)
+                { id: "central", name: "Comunicación en Territorios", group: 0, content: "<h3>Concepto Central</h3><ul><li>Fortalecimiento del tejido social</li><li>Democratización de la información</li><li>Preservación de identidades culturales</li><li>Facilitación del desarrollo participativo</li><li>Construcción de ciudadanía activa</li></ul>" },
+                // Main Nodes (Group 1)
+                { id: "benefits", name: "Beneficios/Desventajas", group: 1, content: "<h3>Impactos en el Desarrollo</h3><ul><li><strong>Beneficios:</strong> Empoderamiento comunitario, innovación social, cohesión territorial.</li><li><strong>Desventajas:</strong> Brecha digital, dependencia tecnológica, pérdida de tradiciones.</li></ul>" },
+                { id: "needs", name: "Necesidades/Impedimentos", group: 1, content: "<h3>Análisis Comunitario</h3><ul><li><strong>Necesidades:</strong> Infraestructura, capacitación, contenidos locales.</li><li><strong>Impedimentos:</strong> Barreras geográficas, culturales y económicas.</li></ul>" },
+                { id: "implementation", name: "Implementación", group: 1, content: "<h3>Factibilidad Operativa</h3><ul><li><strong>Posibilidades:</strong> Redes autogestionadas, medios participativos, alianzas.</li><li><strong>Dificultades:</strong> Costos, mantenimiento, sostenibilidad.</li></ul>" },
+                { id: "agreements", name: "Compromisos/Avenencias", group: 1, content: "<h3>Articulación Institucional</h3><ul><li><strong>Compromisos:</strong> Respeto cultural, inversión, transparencia.</li><li><strong>Avenencias:</strong> Equilibrio, consensos, coordinación.</li></ul>" },
+                // Sub-Nodes (Groups 2-5)
+                { id: "benefits-pos", name: "Fortalezas", group: 2, content: "<h3>Aspectos Positivos</h3><ul><li>Identidad cultural fortalecida</li><li>Participación ciudadana activa</li><li>Desarrollo económico sostenible</li></ul>" },
+                { id: "benefits-neg", name: "Riesgos", group: 3, content: "<h3>Aspectos Negativos</h3><ul><li>Exclusión digital</li><li>Homogenización cultural</li><li>Manipulación informativa</li></ul>" },
+                { id: "needs-barrier", name: "Barreras", group: 4, content: "<h3>Impedimentos Principales</h3><ul><li>Limitaciones geográficas</li><li>Barreras idiomáticas</li><li>Falta de recursos</li></ul>" },
+                { id: "needs-req", name: "Requerimientos", group: 4, content: "<h3>Necesidades Esenciales</h3><ul><li>Infraestructura tecnológica</li><li>Capacitación especializada</li><li>Contenidos apropiados</li></ul>" },
+                { id: "impl-pos", name: "Oportunidades", group: 2, content: "<h3>Posibilidades Reales</h3><ul><li>Redes comunitarias</li><li>Medios participativos</li><li>Alianzas estratégicas</li></ul>" },
+                { id: "impl-neg", name: "Desafíos", group: 3, content: "<h3>Dificultades Operativas</h3><ul><li>Costos elevados</li><li>Mantenimiento técnico</li><li>Sostenibilidad financiera</li></ul>" },
+                { id: "agree-pos", name: "Consensos", group: 5, content: "<h3>Compromisos Efectivos</h3><ul><li>Respeto a la diversidad</li><li>Inversión sostenida</li><li>Políticas incluyentes</li></ul>" },
+                { id: "agree-balance", name: "Equilibrios", group: 5, content: "<h3>Avenencias Estratégicas</h3><ul><li>Tradición e innovación</li><li>Mediación de conflictos</li><li>Adaptación contextual</li></ul>" },
+            ],
+            links: [
+                // Main connections
+                { source: "central", target: "benefits" },
+                { source: "central", target: "needs" },
+                { source: "central", target: "implementation" },
+                { source: "central", target: "agreements" },
+                // Sub-connections
+                { source: "benefits", target: "benefits-pos" },
+                { source: "benefits", target: "benefits-neg" },
+                { source: "needs", target: "needs-barrier" },
+                { source: "needs", target: "needs-req" },
+                { source: "implementation", target: "impl-pos" },
+                { source: "implementation", target: "impl-neg" },
+                { source: "agreements", target: "agree-pos" },
+                { source: "agreements", target: "agree-balance" },
+            ]
+        };
+
+        // --- 2. D3 Setup ---
+        const container = document.getElementById('graph-container');
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+
+        // Color scale for different node groups
+        const color = d3.scaleOrdinal([
+            '#667eea', // 0: Central
+            '#a8edea', // 1: Main
+            '#26de81', // 2: Positive
+            '#ff6b6b', // 3: Negative
+            '#fd79a8', // 4: Barrier
+            '#fad0c4'  // 5: Agreement
+        ]);
+
+        const svg = d3.select("#graph-container").append("svg")
+            .attr("viewBox", [-width / 2, -height / 2, width, height]);
+
+        // --- 3. Force Simulation ---
+        // This is the physics engine that arranges the nodes.
+        const simulation = d3.forceSimulation(graphData.nodes)
+            .force("link", d3.forceLink(graphData.links).id(d => d.id).distance(100))
+            .force("charge", d3.forceManyBody().strength(-200))
+            .force("center", d3.forceCenter(0, 0));
+
+        // --- 4. SVG Elements ---
+        const link = svg.append("g")
+            .attr("class", "links")
+            .selectAll("line")
+            .data(graphData.links)
+            .join("line");
+
+        const node = svg.append("g")
+            .attr("class", "nodes")
+            .selectAll("g")
+            .data(graphData.nodes)
+            .join("g");
+
+        const circles = node.append("circle")
+            .attr("r", d => d.group === 0 ? 25 : (d.group === 1 ? 18 : 12)) // Size based on importance
+            .attr("fill", d => color(d.group))
+            .call(drag(simulation));
+
+        const labels = node.append("text")
+            .text(d => d.name)
+            .attr("y", d => d.group === 0 ? 35 : (d.group === 1 ? 28 : 20)); // Label position
+        
+        // --- 5. Event Handlers & Ticker ---
+        node.on("click", (event, d) => {
+            // Update info panel
+            document.getElementById('info-panel').innerHTML = d.content;
+            
+            // Highlight clicked node and its direct neighbors
+            circles.attr('opacity', 0.3);
+            link.attr('stroke-opacity', 0.1);
+            
+            d3.select(event.currentTarget).select('circle').attr('opacity', 1);
+
+            graphData.links.forEach(l => {
+                if (l.source.id === d.id || l.target.id === d.id) {
+                    d3.selectAll('circle').filter(n => n.id === l.source.id || n.id === l.target.id).attr('opacity', 1);
+                    d3.selectAll('line').filter(line => line.index === l.index).attr('stroke-opacity', 0.8);
+                }
+            });
+
+            event.stopPropagation();
+        });
+        
+        // Reset highlights when clicking background
+        svg.on('click', () => {
+            circles.attr('opacity', 1);
+            link.attr('stroke-opacity', 0.6);
+            document.getElementById('info-panel').innerHTML = '<p class="placeholder">Haga clic en un nodo para ver su información detallada.</p>';
+        });
+
+        // This function runs on every "tick" of the simulation to update positions.
+        simulation.on("tick", () => {
+            link
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+            node
+                .attr("transform", d => `translate(${d.x},${d.y})`);
+        });
+
+        // --- 6. Drag Functionality ---
+        function drag(simulation) {
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+            return d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended);
+        }
+    </script>
+
+</body>
+</html>
+
